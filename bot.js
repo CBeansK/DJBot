@@ -4,7 +4,7 @@ const ytdl = require('discord-ytdl-core');
 var mic = require('mic6');
 var fs = require('fs');
 // bad, put this in a file doofus
-const token = 'ODA2MzYwNzQzMTI0NjY0MzYw.YBoT9g.9b6Hee-HoUjUaL-YwumgCHuuwnE';
+const token = 'token';
 
 const prefix = '$'
 
@@ -55,7 +55,7 @@ function doDJStuff(msg){
     let vc = guild.channels.cache.get(authorVoiceChannelID);
     
     let micInstance = mic({
-        rate: '16000',
+        rate: '44000',
         channels: '1',
         debug: true,
         exitOnSilence: 10
