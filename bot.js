@@ -1,76 +1,64 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const ytdl = require('discord-ytdl-core');
-var mic = require('mic6');
-var fs = require('fs');
+const CommandHandler = require('./commands');
+const fs = require('fs');
+const handler = new CommandHandler(client);
 // bad, put this in a file doofus
 const token = 'token';
 
 const prefix = '$'
 
+// initial setup
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
+// message listener for commands
 client.on('message', msg => {
     if (msg.content.startsWith(prefix)) {
         handle(msg, msg.content.slice(1, msg.content.length));
     }
 });
 
+client.on('error', err => {
+  fs.appendFile("errorlog.txt", err, function(er) {
+    if (er) throw er;
+    console.log('Error written to file.');
+  });
+  fs.close()
+})
+
+// handling commands
+// New commands should go here
 function handle(msg, command){
-    switch(command){
+  // parse arguments
+  let tokens = command.split(' ');
+  let args = [];
+  if (tokens.length > 1){
+    args = tokens.slice(1);
+  }
+    switch(tokens[0]){
         case 'ping':
             msg.reply('Pong!');
             break;
         case 'marco':
             msg.reply('Polo!');
+            break;
         case 'dj':
-            doDJStuff(msg);
+            handler.doDJStuff(msg);
+            break;
+        case 'leave':
+            handler.leaveChannel(msg);
+            break;
+        case 'tip':
+            handler.addTip(msg, args);
+            break;
+        case 'tipped':
+            handler.viewTips(msg);
     }
 }
 
-function doDJStuff(msg){
-    let authorID = msg.author.id;
-    let guild = msg.guild;
-    
-    let getVoiceChannels = function(channels){
-        return channels.partition(channel => channel.type === 'voice')[0];
-    }
-    
-    let getVoiceMembers = function(channels){
-        let membersInChannel = new Map();
-        channels.each(channel => {
-            if (channel.members.keyArray().length > 0){
-                channel.members.each((member) => {
-                    membersInChannel.set(member.id, channel.id);
-                });
-            }
-        });
-        return membersInChannel;
-    }
-
-    let authorVoiceChannelID = getVoiceMembers(getVoiceChannels(guild.channels.cache)).get(authorID);
-    
-    let vc = guild.channels.cache.get(authorVoiceChannelID);
-    
-    let micInstance = mic({
-        rate: '44000',
-        channels: '1',
-        debug: true,
-        exitOnSilence: 10
-    });
-    
-    let micInputStream = micInstance.getAudioStream();
-  
-    vc.join().then(connection => {
-        micInstance.start();
-        const dispatcher = connection.play(micInputStream);
-        
-    }).catch(err => console.log(err));
-}
-
-
-
-
-client.login(token);
+// log in to discord
+client.login(token).catch((error) => {
+  console.log('Error logging in. Shutting down.');
+});
