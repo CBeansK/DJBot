@@ -1,10 +1,10 @@
+// docs for mic library: https://www.npmjs.com/package/mic6
+// TODO: rewrite this whole damn file lmaoo
 const mic = require('mic6');
 
-var CommandHandler = function(client){
-  this.client = client;
-}
+let tips = 0;
 
-CommandHandler.prototype.doDJStuff = function(msg){
+exports.doDJStuff = function(msg){
   let vc = getAuthorConnection(msg);
 
   if (vc === undefined){
@@ -32,67 +32,51 @@ CommandHandler.prototype.doDJStuff = function(msg){
       micInputStream.on('silence', function() {
         console.log('Silent for too long. Leaving channel.');
         micInstance.stop();
-        leaveChannel(msg);
+        exports.leaveChannel(msg);
       });
 
       micInputStream.on('error', function(error) {
         msg.reply('Error capturing audio.');
         micInstance.stop();
+        exports.leaveChannel(msg);
       })
 
   }).catch(err => {
-    console.error(err);
     msg.reply('Error while trying to join voice channel.');
-    throw err;
+    exports.leaveChannel(msg);
   });
 }
 
-CommandHandler.prototype.leaveChannel = function(msg){
-  // get any connections that the bot is in
-  // get the connection the author is in
-  let authorvc = getAuthorConnection(msg);
-  let connections = this.client.voice.connections;
+exports.leaveChannel = function(msg){
 
-  if (connections.length === 0){
-    msg.reply('I am not in any voice channels.');
-    return;
-  }
+  // get voice channel of author
+  let authorvc = getAuthorConnection(msg);
 
   if (authorvc === undefined){
     msg.reply('You aren\'t in a voice channel');
     return;
   }
-  // if there's no connections dont do anything
-  let vcs = connections.values();
-  let botvc;
 
-  for(let vc of vcs){
-    if (vc.channel.id === authorvc.id) botvc = vc;
-  }
+  // find if bot is in the same voice channel as author
+  let botvc = getMatchingBotConnection(authorvc, msg);
 
+  if (botvc === undefined) return;
 
-
-  // if there is a connection, then we wanna try to leave it
-  if (botvc === undefined){
+  if (botvc === ''){
     msg.reply('You must be in the same voice channel as me to use this command.');
     return;
   }
 
-  // if it works, we're good
+  // leave channel
   try {
     msg.reply('Leaving voice channel.');
     botvc.disconnect();
   } catch (error){
     console.error(error);
   }
-  // otherwise error
-
 }
 
-// storing tips for the current session
-var tips = 0;
-
-CommandHandler.prototype.addTip = function(msg, args){
+exports.addTip = function(msg, args){
 
   let usage = function(){
     msg.reply('Please specify an amount (0 - 100)');
@@ -100,6 +84,8 @@ CommandHandler.prototype.addTip = function(msg, args){
   if (args.length === 0 || args.length > 1){
     usage();
     return;
+  } else if (args[0].startsWith('$')){
+      args[0] = args[0].slice(1);
   } else if (isNaN(args[0])) {
     usage();
     return;
@@ -114,11 +100,31 @@ CommandHandler.prototype.addTip = function(msg, args){
   msg.reply(`Tipped $${amt}!`)
 }
 
-CommandHandler.prototype.viewTips = function(msg){
-  msg.reply(`Tips for current session: $${tips}`);
+exports.viewTips = function(msg){
+  msg.reply(`Tips for current session: $${this.tips}`);
 }
 
-function getAuthorConnection(msg){
+exports.makeError = function(){
+  return asdf(1234);
+}
+
+let getMatchingBotConnection = function(author, msg){
+  // get voice channel of bot
+  let connections = client.voice.connections;
+
+  if (connections.length === 0){
+    msg.reply('I am not in any voice channels.');
+    return;
+  }
+  // if there's no connections dont do anything
+  let vcs = connections.values();
+  let botvc = '';
+
+  for(let vc of vcs){
+    if (vc.channel.id === authorvc.id) botvc = vc;
+  }
+}
+let getAuthorConnection = function(msg){
 
   let authorID = msg.author.id;
   let guild = msg.guild;
@@ -151,5 +157,3 @@ function getAuthorConnection(msg){
   // get voice channel of author
   return cache.get(authorVoiceChannelID);
 }
-
-module.exports = CommandHandler;

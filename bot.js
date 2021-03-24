@@ -1,10 +1,10 @@
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const CommandHandler = require('./commands');
 const fs = require('fs');
-const handler = new CommandHandler(client);
+const handler = require('./commands');
+const config = require('./config');
 // bad, put this in a file doofus
-const token = 'token';
+const token = config.get('token');
 
 const prefix = '$'
 
@@ -25,7 +25,7 @@ client.on('error', err => {
     if (er) throw er;
     console.log('Error written to file.');
   });
-  fs.close()
+  fs.close();
 })
 
 // handling commands
@@ -55,6 +55,11 @@ function handle(msg, command){
             break;
         case 'tipped':
             handler.viewTips(msg);
+            break;
+        case 'testError':
+            handler.makeError();
+            msg.reply("Making error");
+            break;
     }
 }
 
